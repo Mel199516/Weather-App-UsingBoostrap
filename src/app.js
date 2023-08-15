@@ -166,6 +166,5 @@ document.getElementById("searchButton").addEventListener("click", function () {
     let apiKey = "422a5d2a9e80b842797654cf3e2f72e8";
     let city = document.getElementById("cityInput").value;
     let apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
-
     axios.get(apiUrl).then(displayTemperature);
 });
