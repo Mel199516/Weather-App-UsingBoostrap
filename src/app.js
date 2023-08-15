@@ -84,8 +84,37 @@
 
 // fetchWeatherData(city);
 
+let isCelsius = true;
+
+function toggleTemperatureUnits() {
+    let temperatureElement = document.getElementById("temperature");
+
+    if (isCelsius) {
+        temperatureElement.innerHTML = `${toFahrenheit(temperatureElement.innerHTML)}°F`;
+    } else {
+        temperatureElement.innerHTML = `${toCelsius(temperatureElement.innerHTML)}°C`;
+    }
+
+    isCelsius = !isCelsius;
+}
+
+function toFahrenheit(celsius) {
+    return ((celsius * 9 / 5) + 32).toFixed(1);
+}
+
+function toCelsius(fahrenheit) {
+    return ((fahrenheit - 32) * 5 / 9).toFixed(1);
+}
+
+
+
+
 function displayTemperature(response) {
     console.log(response.data)
+
+    if (!response.data) {
+        return null;
+    }
 
     let temperature = response.data.main.temp;
     let city = response.data.name;
@@ -101,9 +130,17 @@ function displayTemperature(response) {
     let hours = currentDate.getHours();
     let minutes = currentDate.getMinutes();
     let timeOfDay = hours >= 12 ? "pm" : "am";
+
+    if (hours >= 12) {
+        timeOfDay = "pm";
+    }
+
     if (hours > 12) {
         hours -= 12;
+    } else if (hours === 0) {
+        hours = 12;
     }
+
     if (minutes < 10) {
         minutes = `0${minutes}`;
     }
@@ -119,7 +156,18 @@ function displayTemperature(response) {
         weatherIconClass = "bi-question";
     }
 
+    // Time zone funtion/
+    let timezoneOffset = response.data.timezone;
+    let timezoneOffsetHours = Math.floor(timezoneOffset / 3600);
+    let timezoneOffsetMinutes = Math.abs(Math.floor((timezoneOffset % 3600) / 60));
 
+    hours += timezoneOffsetHours;
+    minutes += timezoneOffsetMinutes;
+
+    if (hours >= 24) {
+        hours = 24;
+        dayOfWeek = daysOfWeek[(daysOfWeek.indexOf(dayOfWeek) + 1) % 7];
+    }
 
 
     let temperatureElement = document.querySelector("#temperature");
@@ -130,9 +178,8 @@ function displayTemperature(response) {
     let precipitationElement = document.querySelector("#precipitation");
     let feelsLikeElement = document.querySelector("#feelsLike");
     let dateTimeElement = document.querySelector("#date-time");
-    let currentTime = `${dayOfWeek} ${hours}:${minutes} ${timeOfDay}`;
+    let currentTime = `${dayOfWeek} ${hours}:${minutes < 10 ? '0' : ''}${minutes} ${timeOfDay}`;
     let weatherIconElement = document.querySelector("#weatherIcon i");
-
 
 
     temperatureElement.innerHTML = `${temperature}`;
@@ -146,8 +193,24 @@ function displayTemperature(response) {
     weatherIconElement.className = `bi ${weatherIconClass}`;
 
 }
+document.getElementById("celsiusLink").addEventListener("click", toggleTemperatureUnits);
+document.getElementById("fahrenheitLink").addEventListener("click", toggleTemperatureUnits);
+document.getElementById("searchButton").addEventListener("click", function () {
+    let apiKey = "422a5d2a9e80b842797654cf3e2f72e8";
+    let city = document.getElementById("cityInput").value;
+    let apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+    axios.get(apiUrl).then(displayTemperature);
 
-let apiKey = "422a5d2a9e80b842797654cf3e2f72e8";
-let apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=-33.8688&lon=151.2093&units=metric&appid=${apiKey}`;
+});
 
-axios.get(apiUrl).then(displayTemperature);
+function loadDefaultCity() {
+    let apiKey = "422a5d2a9e80b842797654cf3e2f72e8";
+    let defaultCity = "Sydney";
+    let apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${defaultCity}&appid=${apiKey}&units=metric`;
+
+    axios.get(apiUrl).then(displayTemperature);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    loadDefaultCity();
+});
