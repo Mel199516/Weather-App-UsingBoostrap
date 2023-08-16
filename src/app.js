@@ -86,28 +86,27 @@
 
 let isCelsius = true;
 
-function toggleTemperatureUnits() {
+function toggleTemperatureUnits(value) {
+    console.log(value.target.className)
     let temperatureElement = document.getElementById("temperature");
-
-    if (isCelsius) {
-        temperatureElement.innerHTML = `${toFahrenheit(temperatureElement.innerHTML)}°F`;
+    let temperatureValue = parseFloat(temperatureElement.innerHTML);
+    let temp = document.getElementById('temperature-number').innerText
+    if (value.target.className === 'f') {
+        temperatureElement.innerHTML = `<span id="temperature-number">${toFahrenheit(temp)}</span>°F`;
     } else {
-        temperatureElement.innerHTML = `${toCelsius(temperatureElement.innerHTML)}°C`;
+        temperatureElement.innerHTML = `<span id="temperature-number">${toCelsius(temp)}</span>°C`;
     }
 
     isCelsius = !isCelsius;
 }
 
 function toFahrenheit(celsius) {
-    return ((celsius * 9 / 5) + 32).toFixed(1);
+    return Math.round((celsius * 9 / 5) + 32).toFixed(1);
 }
 
 function toCelsius(fahrenheit) {
-    return ((fahrenheit - 32) * 5 / 9).toFixed(1);
+    return Math.round((fahrenheit - 32) * 5 / 9).toFixed(1);
 }
-
-
-
 
 function displayTemperature(response) {
     console.log(response.data)
@@ -117,6 +116,7 @@ function displayTemperature(response) {
     }
 
     let temperature = response.data.main.temp;
+    let temperatureRounded = Math.round(temperature);
     let city = response.data.name;
     let country = response.data.sys.country;
     let description = response.data.weather[0].description;
@@ -124,6 +124,7 @@ function displayTemperature(response) {
     let windSpeed = response.data.wind.speed;
     let precipitation = response.data.rain ? response.data.rain["1h"] : 0;
     let feelsLike = response.data.main.feels_like;
+    let feelsLikeRounded = Math.round(feelsLike);
     let daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     let currentDate = new Date();
     let dayOfWeek = daysOfWeek[currentDate.getDay()];
@@ -156,18 +157,30 @@ function displayTemperature(response) {
         weatherIconClass = "bi-question";
     }
 
-    // Time zone funtion/
-    let timezoneOffset = response.data.timezone;
-    let timezoneOffsetHours = Math.floor(timezoneOffset / 3600);
-    let timezoneOffsetMinutes = Math.abs(Math.floor((timezoneOffset % 3600) / 60));
+    /**
+     * Get time in 12 hour format
+     */
+    function getTimeWithOffset(offsetInSeconds) {
+        const offsetInMilliseconds = offsetInSeconds * 1000;
+        const localTime = new Date();
+        const targetTime = new Date(localTime.getTime() + offsetInMilliseconds);
 
-    hours += timezoneOffsetHours;
-    minutes += timezoneOffsetMinutes;
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayOfWeek = days[targetTime.getUTCDay()];
 
-    if (hours >= 24) {
-        hours = 24;
-        dayOfWeek = daysOfWeek[(daysOfWeek.indexOf(dayOfWeek) + 1) % 7];
+        let hours = targetTime.getUTCHours();
+        const minutes = targetTime.getUTCMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+
+        return `${dayOfWeek}, ${hours}:${strMinutes} ${ampm}`;
     }
+
+    // Time zone funtion/
+    let time12HourFormat = getTimeWithOffset(response.data.timezone);
 
 
     let temperatureElement = document.querySelector("#temperature");
@@ -178,29 +191,37 @@ function displayTemperature(response) {
     let precipitationElement = document.querySelector("#precipitation");
     let feelsLikeElement = document.querySelector("#feelsLike");
     let dateTimeElement = document.querySelector("#date-time");
-    let currentTime = `${dayOfWeek} ${hours}:${minutes < 10 ? '0' : ''}${minutes} ${timeOfDay}`;
+    // let currentTime = `${dayOfWeek} ${hours}:${minutes < 10 ? '0' : ''}${minutes} ${timeOfDay}`;
     let weatherIconElement = document.querySelector("#weatherIcon i");
 
 
-    temperatureElement.innerHTML = `${temperature}`;
+    temperatureElement.innerHTML = `<span id="temperature-number">${temperatureRounded}</span><span style="font-size: 10px; position:absolute; top:135px;">&#8451;</span>`;
     cityCountryElement.innerHTML = `${city}, ${country}`;
     descriptionElement.innerHTML = description;
     humidityElement.innerHTML = humidity.toString() + "%";
     windSpeedElement.innerHTML = windSpeed.toString() + " m/s";
     precipitationElement.innerHTML = `${precipitation} mm`;
-    feelsLikeElement.innerHTML = feelsLike;
-    dateTimeElement.innerHTML = `${currentTime}`;
+    feelsLikeElement.innerHTML = `${feelsLikeRounded} <span style="font-size: 8px; position:absolute; margin-top:3px;">&#8451;</span>`;
+    dateTimeElement.innerHTML = `${time12HourFormat}`;
     weatherIconElement.className = `bi ${weatherIconClass}`;
-
 }
-document.getElementById("celsiusLink").addEventListener("click", toggleTemperatureUnits);
-document.getElementById("fahrenheitLink").addEventListener("click", toggleTemperatureUnits);
-document.getElementById("searchButton").addEventListener("click", function () {
+
+function callApi() {
     let apiKey = "422a5d2a9e80b842797654cf3e2f72e8";
     let city = document.getElementById("cityInput").value;
     let apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
     axios.get(apiUrl).then(displayTemperature);
+}
 
+document.getElementById("celsiusLink").addEventListener("click", toggleTemperatureUnits);
+document.getElementById("fahrenheitLink").addEventListener("click", toggleTemperatureUnits);
+document.getElementById("searchButton").addEventListener("click", function () {
+    callApi()
+});
+document.getElementById("cityInput").addEventListener("keydown", function (event) {
+    if (event.code === "Enter") {
+        callApi()
+    }
 });
 
 function loadDefaultCity() {
