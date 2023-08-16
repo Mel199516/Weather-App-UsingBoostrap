@@ -66,3 +66,25 @@ ul {
     font-size: 80px;
     margin-right: 60px;
 }
+
+.weather-forecast {
+    text-align: center;
+    margin-left: 110px;
+}
+
+.weather-forecast-date {
+    color: blueviolet;
+}
+
+.weather-forecast-temperature-max {
+    font-weight: bold;
+}
+
+.weather-forecast-temperature-min {
+    color: #878787;
+}
+
+.title-forecast {
+    position: relative;
+    margin-right: 110px;
+}

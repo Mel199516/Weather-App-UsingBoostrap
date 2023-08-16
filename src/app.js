@@ -109,7 +109,7 @@ function toCelsius(fahrenheit) {
 }
 
 function displayTemperature(response) {
-    console.log(response.data)
+    console.log('displayTemperature response.data', response)
 
     if (!response.data) {
         return null;
@@ -191,9 +191,7 @@ function displayTemperature(response) {
     let precipitationElement = document.querySelector("#precipitation");
     let feelsLikeElement = document.querySelector("#feelsLike");
     let dateTimeElement = document.querySelector("#date-time");
-    // let currentTime = `${dayOfWeek} ${hours}:${minutes < 10 ? '0' : ''}${minutes} ${timeOfDay}`;
     let weatherIconElement = document.querySelector("#weatherIcon i");
-
 
     temperatureElement.innerHTML = `<span id="temperature-number">${temperatureRounded}</span><span style="font-size: 10px; position:absolute; top:135px;">&#8451;</span>`;
     cityCountryElement.innerHTML = `${city}, ${country}`;
@@ -206,32 +204,82 @@ function displayTemperature(response) {
     weatherIconElement.className = `bi ${weatherIconClass}`;
 }
 
-function callApi() {
-    let apiKey = "422a5d2a9e80b842797654cf3e2f72e8";
-    let city = document.getElementById("cityInput").value;
-    let apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
-    axios.get(apiUrl).then(displayTemperature);
+/**
+ * Forecast
+ */
+function displayForecast(response) {
+    console.log(response)
+    let dailyData = response.data.daily.slice(1, 5);
+    let forecastElement = document.querySelector("#forecast");
+
+    let forecastHTML = `<h2 class="title-forecast">Forecast</h2><div class="row">`;
+    dailyData.forEach(function (day) {
+        let daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thur", "Fri", "Sat"];
+
+        let timestampInMilliseconds = day.dt * 1000;
+        const date = new Date(timestampInMilliseconds);
+
+        forecastHTML += `
+            <div class="col-2">
+                <div class="weather-forecast-date">${daysOfWeek[date.getDay()]}</div>
+                <i class="fas fa-cloud fa-2x mb-3" style="color: #ddd;"></i>
+                <div class="weather-forecast-temperature">
+                    <span class="weather-forecast-temperature-max">${Math.round(day.temp.max)}°</span>
+                    <span class="weather-forecast-temperature-min">${Math.round(day.temp.min)}°</span>
+                </div>
+            </div>
+        `;
+    });
+
+    forecastHTML += `</div>`;
+    forecastElement.innerHTML = forecastHTML;
 }
+
+/**
+ * API Calls
+ */
+const apiKey = "422a5d2a9e80b842797654cf3e2f72e8";
+const apiKeySheCodes = "88724523008dc9e1be18f6eb6a959b67";
+let lat = '';
+let lon = '';
+
+async function callApiGetCity() {
+    let city = document.getElementById("cityInput").value;
+    let apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKeySheCodes}&units=metric`;
+
+    await axios.get(apiUrl).then((response) => {
+        lat = response.data.coord.lat;
+        lon = response.data.coord.lon;
+
+        displayTemperature(response);
+    });
+}
+
+async function callApiGetForecast() {
+    let apiUrl = `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=hourly&appid=${apiKeySheCodes}`;
+
+    axios.get(apiUrl).then((response) => {
+        displayForecast(response);
+    });
+}
+
+async function getWeather() {
+    await callApiGetCity();
+    await callApiGetForecast();
+}
+
 
 document.getElementById("celsiusLink").addEventListener("click", toggleTemperatureUnits);
 document.getElementById("fahrenheitLink").addEventListener("click", toggleTemperatureUnits);
 document.getElementById("searchButton").addEventListener("click", function () {
-    callApi()
+    getWeather()
 });
 document.getElementById("cityInput").addEventListener("keydown", function (event) {
     if (event.code === "Enter") {
-        callApi()
+        getWeather();
     }
 });
 
-function loadDefaultCity() {
-    let apiKey = "422a5d2a9e80b842797654cf3e2f72e8";
-    let defaultCity = "Sydney";
-    let apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${defaultCity}&appid=${apiKey}&units=metric`;
-
-    axios.get(apiUrl).then(displayTemperature);
-}
-
 document.addEventListener("DOMContentLoaded", function () {
-    loadDefaultCity();
+    getWeather();
 });
